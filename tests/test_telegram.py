@@ -10,10 +10,9 @@ from app.alerts.telegram import (
     _is_quiet_hours,
     _is_duplicate_alert,
     evaluate_and_alert,
-    flush_queued_alerts,
 )
 from app.core.scoring import ScoreBreakdown
-from app.db.models import AlertQueue, Project
+from app.db.models import Project
 
 
 class TestQuietHours:

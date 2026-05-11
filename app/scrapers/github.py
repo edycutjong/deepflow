@@ -5,7 +5,6 @@ GitHub commit keyword scanner.
 - Populates github_signals table with dedup via unique constraint
 - Respects github_overrides for false positive suppression
 """
-import json
 from datetime import datetime, timedelta, timezone
 
 import httpx

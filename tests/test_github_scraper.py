@@ -40,7 +40,7 @@ class TestCommitScanning:
     @pytest.mark.asyncio
     @respx.mock
     async def test_keyword_match_found(self):
-        route = respx.get(
+        _route = respx.get(
             "https://api.github.com/repos/test-org/test-repo/commits"
         ).mock(
             return_value=httpx.Response(

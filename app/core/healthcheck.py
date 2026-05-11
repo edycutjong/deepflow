@@ -2,7 +2,6 @@
 Health check endpoint for Docker HEALTHCHECK.
 Simple HTTP server on port 8080 that returns 200 if the scheduler is running.
 """
-import asyncio
 from aiohttp import web
 from loguru import logger
 

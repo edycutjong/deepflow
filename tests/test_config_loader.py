@@ -6,10 +6,8 @@ invalid quiet hours, and hot-reload preserves old config on validation failure.
 import os
 import tempfile
 
-import pytest
-
 import app.core.config_loader as config_loader
-from app.core.config_loader import AppConfig, _CONFIG_LOCK, reload_config
+from app.core.config_loader import _CONFIG_LOCK, reload_config
 
 
 VALID_YAML = """

@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from loguru import logger
-from sqlalchemy import func, select, text, update
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.alerts.telegram import evaluate_and_alert, flush_queued_alerts

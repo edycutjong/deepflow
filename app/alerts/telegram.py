@@ -3,12 +3,11 @@ Telegram alerting with quiet hours enforcement, deduplication,
 and score threshold routing (immediate_alert vs watchlist).
 Uses python-telegram-bot v20+ async API.
 """
-import json
 from datetime import datetime, timezone
 
 import pytz
 from loguru import logger
-from sqlalchemy import select, text
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from telegram import Bot
 
