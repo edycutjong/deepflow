@@ -40,10 +40,11 @@ class TestCommitScanning:
     @pytest.mark.asyncio
     @respx.mock
     async def test_keyword_match_found(self):
-        _route = respx.get(
+        route = respx.get(
             "https://api.github.com/repos/test-org/test-repo/commits"
-        ).mock(
-            return_value=httpx.Response(
+        )
+        route.side_effect = [
+            httpx.Response(
                 200,
                 json=[
                     {
@@ -54,8 +55,9 @@ class TestCommitScanning:
                         },
                     }
                 ],
-            )
-        )
+            ),
+            httpx.Response(200, json=[]),  # page 2: empty stops pagination
+        ]
 
         async with httpx.AsyncClient() as client:
             signals = await _scan_repo_commits(
@@ -110,10 +112,11 @@ class TestCommitScanning:
     @pytest.mark.asyncio
     @respx.mock
     async def test_multiple_keywords_in_same_commit(self):
-        respx.get(
+        route = respx.get(
             "https://api.github.com/repos/test-org/test-repo/commits"
-        ).mock(
-            return_value=httpx.Response(
+        )
+        route.side_effect = [
+            httpx.Response(
                 200,
                 json=[
                     {
@@ -124,8 +127,9 @@ class TestCommitScanning:
                         },
                     }
                 ],
-            )
-        )
+            ),
+            httpx.Response(200, json=[]),  # page 2: empty stops pagination
+        ]
 
         async with httpx.AsyncClient() as client:
             signals = await _scan_repo_commits(

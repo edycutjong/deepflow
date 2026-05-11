@@ -138,6 +138,7 @@ async def test_metrics_collector_handles_scraper_crash():
         pass
 
     assert m.api_errors == 1
+    assert m.error_details is not None
     assert "exploded" in m.error_details
     # Scraper crashed, so it rolled back the dirty state, then committed the metric
     mock_session.rollback.assert_awaited_once()

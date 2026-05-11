@@ -49,11 +49,13 @@ def test_deterministic_vc_sorting_and_decay(mock_config):
 
     bdown = generate_score(0, 0, vcs, round_date, [], now)
 
-    # Sorting: a16z (20), Paradigm (20*0.25=5), Dragonfly (10*0.25=2.5) -> 27.5
+    # Sorting by (-pts, name): Paradigm (20, 'P'), a16z (20, 'a'), Dragonfly (10, 'D')
+    # Python str sort: 'P' (80) < 'a' (97), so Paradigm leads
+    # Paradigm (20), a16z (20*0.25=5), Dragonfly (10*0.25=2.5) -> 27.5
     # Capped at 25.0
     # Decay applied (180 days = 0.5 multiplier) -> 12.5
     assert bdown.funding_points == 12.5
-    assert "a16z, Paradigm, Dragonfly" in bdown.funding_details
+    assert "Paradigm, a16z, Dragonfly" in bdown.funding_details
     assert bdown.decay_multipliers_applied["funding"] == 0.5
 
 

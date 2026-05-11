@@ -1,0 +1,17 @@
+.git
+.github
+.venv
+__pycache__
+*.pyc
+*.pyo
+.env
+.env.*
+!.env.example
+tests/
+BLUEPRINT.md
+backups/
+*.md
+!README.md
+.mypy_cache
+.ruff_cache
+.pytest_cache
