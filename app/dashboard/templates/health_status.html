@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Source Health — Silent Whale{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Source Health Monitor</h1>
+    <p>Scraper reliability tracking with auto-disable after 5 consecutive failures</p>
+</div>
+
+{% if sources %}
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-label">Total Sources</div>
+        <div class="stat-value blue">{{ sources|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Healthy</div>
+        <div class="stat-value green">{{ sources|selectattr('is_healthy')|list|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Disabled</div>
+        <div class="stat-value" style="color: var(--accent-red);">{{ sources|rejectattr('is_healthy')|list|length }}</div>
+    </div>
+</div>
+
+<div class="table-container">
+    <table>
+        <thead>
+            <tr>
+                <th>Source</th>
+                <th>Status</th>
+                <th>Consecutive Failures</th>
+                <th>Last Success</th>
+                <th>Last Failure</th>
+                <th>Last Error</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for s in sources %}
+            <tr>
+                <td style="font-weight: 600;">{{ s.source_name }}</td>
+                <td>
+                    {% if s.is_healthy %}
+                        <span class="badge badge-healthy">✓ Healthy</span>
+                    {% else %}
+                        <span class="badge badge-unhealthy">✗ Disabled</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if s.consecutive_failures > 0 %}
+                        <span style="color: var(--accent-red); font-weight: 600;">{{ s.consecutive_failures }}</span>
+                    {% else %}
+                        <span style="color: var(--accent-green);">0</span>
+                    {% endif %}
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.8125rem;">
+                    {{ s.last_success.strftime('%m/%d %H:%M') if s.last_success else '—' }}
+                </td>
+                <td style="color: var(--text-muted); font-size: 0.8125rem;">
+                    {{ s.last_failure.strftime('%m/%d %H:%M') if s.last_failure else '—' }}
+                </td>
+                <td style="color: var(--text-secondary); font-size: 0.75rem; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    {{ s.last_error or '—' }}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <span>🔍</span>
+    <p>No source health data yet. Run a full cycle to begin tracking.</p>
+</div>
+{% endif %}
+{% endblock %}

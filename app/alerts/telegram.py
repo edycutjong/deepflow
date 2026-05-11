@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.config_loader import get_config
 from app.core.scoring import ScoreBreakdown
 from app.db.models import AlertQueue, Project
+from app.alerts.webhooks import send_webhook_alerts
 
 
 def _is_quiet_hours(now_utc: datetime) -> bool:
@@ -168,6 +169,9 @@ async def evaluate_and_alert(
             alert.sent = True
             alert.sent_at = now
             logger.info(f"Alert sent for {project.name} (score={score})")
+
+        # Fan out to Discord/Slack webhooks
+        await send_webhook_alerts(project, breakdown, alert_type, message)
 
     await session.commit()
 

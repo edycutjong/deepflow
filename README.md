@@ -2,7 +2,7 @@
 
 **DeFi Alpha Signal Scanner** — Autonomous scoring engine that monitors tokenless DeFi protocols for pre-TGE/airdrop signals using on-chain TVL data, VC funding intelligence, and GitHub commit analysis.
 
-[![CI](https://github.com/edycuDev/DeepFlow/actions/workflows/ci.yml/badge.svg)](https://github.com/edycuDev/DeepFlow/actions/workflows/ci.yml)
+[![CI](https://github.com/edycutjong/deepflow/actions/workflows/ci.yml/badge.svg)](https://github.com/edycutjong/deepflow/actions/workflows/ci.yml)
 ![Python 3.12](https://img.shields.io/badge/python-3.12-blue)
 ![SQLAlchemy 2.0](https://img.shields.io/badge/SQLAlchemy-2.0-orange)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -37,10 +37,14 @@ VC Funding Data ──→ Tier-1/Tier-2 matching ──────────�
                                               │  ≥50 → 👀 Watch  │
                                               │  Quiet hours     │
                                               │  Deduplication   │
-                                              └────────┬────────┘
-                                                       │
-                                                       ▼
-                                                  Telegram Bot
+                                               └────────┬────────┘
+                                                        │
+                                               ┌────────┼────────┐
+                                               ▼        ▼        ▼
+                                          Telegram  Discord   Slack
+
+
+
 ```
 
 ## Scoring Model
@@ -81,7 +85,8 @@ A funding round from Paradigm scored 180 days ago → `20 × 0.5 = 10 pts`
 silent_whale/
 ├── app/
 │   ├── alerts/
-│   │   └── telegram.py          # Telegram bot with quiet hours + dedup
+│   │   ├── telegram.py          # Telegram bot with quiet hours + dedup
+│   │   └── webhooks.py          # Discord + Slack webhook alerts
 │   ├── core/
 │   │   ├── config.py            # Pydantic Settings (env → DSN)
 │   │   ├── config_loader.py     # Thread-safe YAML scoring config
@@ -91,19 +96,22 @@ silent_whale/
 │   │   ├── outcomes.py          # Outcome tracking & backtesting
 │   │   ├── scoring.py           # Multi-factor scoring engine
 │   │   └── source_health.py     # Auto-disable after N failures
+│   ├── dashboard/
+│   │   ├── app.py               # FastAPI dashboard (port 8081)
+│   │   └── templates/           # Jinja2 (leaderboard, detail, health)
 │   ├── db/
-│   │   ├── models.py            # 9 SQLAlchemy 2.0 ORM tables
+│   │   ├── models.py            # 10 SQLAlchemy 2.0 ORM tables
 │   │   ├── metrics.py           # IngestionMetric model
 │   │   └── session.py           # Async engine (pool_size=3)
 │   ├── pipeline/
 │   │   └── score_pipeline.py    # Scrape → Score → Alert orchestrator
 │   ├── scrapers/
-│   │   ├── defillama.py         # httpx + tenacity retry scraper
+│   │   ├── defillama.py         # Multi-chain TVL + httpx retry
 │   │   ├── github.py            # Commit keyword scanner
 │   │   └── funding.py           # DefiLlama /raises ingestion
-│   └── main.py                  # APScheduler + health server
+│   └── main.py                  # APScheduler + health + dashboard
 ├── alembic/                     # Database migrations
-├── tests/                       # pytest + respx (8 test files)
+├── tests/                       # pytest + respx (9 test files)
 ├── scripts/
 │   └── backup.sh                # Nightly pg_dump with 14-day rotation
 ├── config.yaml                  # Scoring weights & VC tier lists
@@ -139,6 +147,8 @@ silent_whale/
 | HTTP | httpx + tenacity (retry) |
 | Scheduler | APScheduler 3.10.4 |
 | Alerts | python-telegram-bot v20+ |
+| Webhooks | httpx (Discord + Slack) |
+| Dashboard | FastAPI + Jinja2 + Chart.js |
 | Database | PostgreSQL 16 Alpine |
 | Migrations | Alembic |
 | Logging | Loguru |
@@ -159,8 +169,8 @@ silent_whale/
 ### 1. Clone & Configure
 
 ```bash
-git clone https://github.com/edycuDev/DeepFlow.git
-cd DeepFlow
+git clone https://github.com/edycutjong/deepflow.git
+cd deepflow
 cp .env.example .env
 # Edit .env with your credentials
 ```
@@ -243,6 +253,9 @@ operational:
 | `POSTGRES_PORT` | Database port | `5432` |
 | `TELEGRAM_BOT_TOKEN` | Telegram bot API token | — |
 | `TELEGRAM_CHAT_ID` | Telegram chat/channel ID | — |
+| `DISCORD_WEBHOOK_URL` | Discord webhook URL | — |
+| `SLACK_WEBHOOK_URL` | Slack incoming webhook URL | — |
+| `GITHUB_TOKEN` | GitHub API token (5000 req/hr) | — |
 
 ---
 
@@ -261,6 +274,7 @@ pytest tests/ -v
 | `test_ingestion` | 10 | Protocol filtering (6 edges), retry recovery, crash rollback |
 | `test_scoring` | 7 | Gradient, decay, VC sorting, category capping |
 | `test_telegram` | 7 | Quiet hours, dedup, threshold routing |
+| `test_webhooks` | 12 | Discord embeds, Slack blocks, send success/failure, fan-out |
 
 ### Linting
 
@@ -349,9 +363,9 @@ Valid outcome types: `tge_launched`, `airdrop_confirmed`, `airdrop_rumor`, `rug`
 - [x] ~~Outcome tracking & backtesting~~
 - [x] ~~Structured JSON logging~~
 - [x] ~~Docker healthcheck~~
-- [ ] Web dashboard for score visualization
-- [ ] Multi-chain TVL aggregation
-- [ ] Webhook support (Discord, Slack)
+- [x] ~~Web dashboard for score visualization~~
+- [x] ~~Multi-chain TVL aggregation~~
+- [x] ~~Webhook support (Discord, Slack)~~
 
 ---
 

@@ -3,6 +3,7 @@ Silent Whale — main entry point.
 APScheduler AsyncIOScheduler with full pipeline:
   DefiLlama → GitHub → Funding → Score → Alert
 Boot-time run, SIGTERM handling, health check server, source health tracking.
+Web dashboard on port 8081.
 """
 import asyncio
 import signal
@@ -119,6 +120,21 @@ async def main() -> None:
     # Mark as healthy after boot
     set_healthy(True)
 
+    # Start dashboard server
+    dashboard_task = None
+    try:
+        import uvicorn
+        from app.dashboard.app import app as dashboard_app
+
+        config = uvicorn.Config(dashboard_app, host="0.0.0.0", port=8081, log_level="warning")
+        dashboard_server = uvicorn.Server(config)
+        dashboard_task = asyncio.create_task(dashboard_server.serve())
+        logger.info("Dashboard server started on http://0.0.0.0:8081")
+    except ImportError:
+        logger.warning("uvicorn not installed — dashboard disabled (pip install uvicorn)")
+    except Exception as e:
+        logger.warning(f"Dashboard server failed to start: {e}")
+
     # Schedule recurring jobs
     scheduler.add_job(
         run_full_cycle,
@@ -161,6 +177,8 @@ async def main() -> None:
         logger.info("Shutting down...")
         set_healthy(False)
         scheduler.shutdown(wait=False)
+        if dashboard_task:
+            dashboard_task.cancel()
         await health_runner.cleanup()
 
 

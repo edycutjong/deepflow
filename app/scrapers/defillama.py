@@ -4,6 +4,8 @@ DefiLlama async scraper.
 - ON CONFLICT DO UPDATE upserts
 - Batched TVL backfill
 """
+import json
+
 import httpx
 from loguru import logger
 from sqlalchemy import text
@@ -64,14 +66,33 @@ async def scrape_protocols(session: AsyncSession) -> None:
             )
 
             for p in protocols:
+                # Extract per-chain TVL breakdown
+                chain_tvls = p.get("chainTvls", {})
+                # Filter to only real chain entries (skip "borrowed", "staking", etc.)
+                chain_tvl_clean = {
+                    chain: tvl
+                    for chain, tvl in chain_tvls.items()
+                    if isinstance(tvl, (int, float))
+                    and tvl > 0
+                    and chain not in ("borrowed", "staking", "pool2", "vesting")
+                }
+
+                # Get list of chains
+                chains_list = p.get("chains", [])
+
+                chain_tvl_json = json.dumps(chain_tvl_clean) if chain_tvl_clean else None
+                chains_json = json.dumps(chains_list) if chains_list else None
+
                 await session.execute(
                     text("""
-                        INSERT INTO projects (slug, name, category, has_token, current_tvl)
-                        VALUES (:slug, :name, :category, :has_token, :tvl)
+                        INSERT INTO projects (slug, name, category, has_token, current_tvl, chains, chain_tvl)
+                        VALUES (:slug, :name, :category, :has_token, :tvl, :chains, :chain_tvl)
                         ON CONFLICT (slug) DO UPDATE SET
                             name = EXCLUDED.name,
                             category = EXCLUDED.category,
                             current_tvl = EXCLUDED.current_tvl,
+                            chains = EXCLUDED.chains,
+                            chain_tvl = EXCLUDED.chain_tvl,
                             last_updated = NOW()
                     """),
                     {
@@ -80,6 +101,8 @@ async def scrape_protocols(session: AsyncSession) -> None:
                         "category": p.get("category"),
                         "has_token": False,
                         "tvl": p.get("tvl", 0),
+                        "chains": chains_json,
+                        "chain_tvl": chain_tvl_json,
                     },
                 )
                 m.projects_upserted += 1

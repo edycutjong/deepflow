@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+{% block title %}Leaderboard — Silent Whale{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Protocol Leaderboard</h1>
+    <p>Real-time DeFi alpha signal scores across {{ projects|length }} tokenless protocols</p>
+</div>
+
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-label">Tracked Protocols</div>
+        <div class="stat-value blue">{{ projects|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Above Alert Threshold</div>
+        <div class="stat-value green">{{ projects|selectattr('latest_score')|selectattr('latest_score', 'ge', 75)|list|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">On Watchlist</div>
+        <div class="stat-value yellow">{{ projects|selectattr('latest_score')|selectattr('latest_score', 'ge', 50)|list|length }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Total Alerts Sent</div>
+        <div class="stat-value purple">{{ total_alerts }}</div>
+    </div>
+</div>
+
+{% if projects %}
+<div class="table-container">
+    <table id="leaderboard">
+        <thead>
+            <tr>
+                <th onclick="sortTable(0)">#</th>
+                <th onclick="sortTable(1)">Protocol</th>
+                <th onclick="sortTable(2)">Category</th>
+                <th onclick="sortTable(3)">TVL</th>
+                <th onclick="sortTable(4)">Growth 30d</th>
+                <th onclick="sortTable(5)">Score</th>
+                <th>Signal</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for p in projects %}
+            <tr>
+                <td style="color: var(--text-muted);">{{ loop.index }}</td>
+                <td>
+                    <a href="/project/{{ p.slug }}" class="project-link">{{ p.name }}</a>
+                    {% if p.chains %}
+                    <div class="chain-pills" style="margin-top: 0.25rem;">
+                        {% for chain in (p.chains|default('[]'))|tojson|default('[]') %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </td>
+                <td style="color: var(--text-secondary);">{{ p.category or '—' }}</td>
+                <td>
+                    {% if p.current_tvl %}
+                        {% if p.current_tvl >= 1000000000 %}
+                            ${{ "%.1f"|format(p.current_tvl / 1000000000) }}B
+                        {% elif p.current_tvl >= 1000000 %}
+                            ${{ "%.1f"|format(p.current_tvl / 1000000) }}M
+                        {% else %}
+                            ${{ "%.0f"|format(p.current_tvl / 1000) }}K
+                        {% endif %}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if p.tvl_growth_30d_pct %}
+                        {% if p.tvl_growth_30d_pct > 0 %}
+                            <span style="color: var(--accent-green);">+{{ "%.1f"|format(p.tvl_growth_30d_pct) }}%</span>
+                        {% elif p.tvl_growth_30d_pct < 0 %}
+                            <span style="color: var(--accent-red);">{{ "%.1f"|format(p.tvl_growth_30d_pct) }}%</span>
+                        {% else %}
+                            <span style="color: var(--text-muted);">0.0%</span>
+                        {% endif %}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% set score = p.latest_score or 0 %}
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span style="font-weight: 600; min-width: 2rem;">{{ "%.0f"|format(score) }}</span>
+                        <div class="score-bar" style="flex: 1;">
+                            <div class="score-bar-fill {% if score >= 75 %}hot{% elif score >= 50 %}warm{% else %}cool{% endif %}"
+                                 style="width: {{ (score / 90 * 100)|int }}%"></div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    {% if score >= 75 %}
+                        <span class="badge badge-hot">🚨 Alert</span>
+                    {% elif score >= 50 %}
+                        <span class="badge badge-warm">👀 Watch</span>
+                    {% else %}
+                        <span class="badge badge-cool">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <span>🐋</span>
+    <p>No protocols tracked yet. Run a full cycle to populate.</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function sortTable(n) {
+    const table = document.getElementById("leaderboard");
+    const rows = Array.from(table.tBodies[0].rows);
+    const dir = table.dataset.sortDir === "asc" ? "desc" : "asc";
+    table.dataset.sortDir = dir;
+
+    rows.sort((a, b) => {
+        let x = a.cells[n].textContent.trim().replace(/[$,%+BM K]/g, "");
+        let y = b.cells[n].textContent.trim().replace(/[$,%+BM K]/g, "");
+        const xn = parseFloat(x), yn = parseFloat(y);
+        if (!isNaN(xn) && !isNaN(yn)) {
+            return dir === "asc" ? xn - yn : yn - xn;
+        }
+        return dir === "asc" ? x.localeCompare(y) : y.localeCompare(x);
+    });
+
+    rows.forEach(row => table.tBodies[0].appendChild(row));
+}
+</script>
+{% endblock %}

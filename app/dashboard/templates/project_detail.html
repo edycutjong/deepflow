@@ -1,0 +1,244 @@
+{% extends "base.html" %}
+{% block title %}{{ project.name }} — Silent Whale{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>{{ project.name }}</h1>
+    <p>
+        {{ project.category or 'Uncategorized' }} · {{ project.slug }}
+        {% if project.latest_score %}
+            ·
+            {% if project.latest_score >= 75 %}
+                <span class="badge badge-hot">🚨 Score {{ "%.0f"|format(project.latest_score) }}</span>
+            {% elif project.latest_score >= 50 %}
+                <span class="badge badge-warm">👀 Score {{ "%.0f"|format(project.latest_score) }}</span>
+            {% else %}
+                <span class="badge badge-cool">Score {{ "%.0f"|format(project.latest_score) }}</span>
+            {% endif %}
+        {% endif %}
+    </p>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+    <div class="stat-card">
+        <div class="stat-label">Current TVL</div>
+        <div class="stat-value blue">
+            {% if project.current_tvl %}
+                {% if project.current_tvl >= 1000000000 %}
+                    ${{ "%.1f"|format(project.current_tvl / 1000000000) }}B
+                {% elif project.current_tvl >= 1000000 %}
+                    ${{ "%.1f"|format(project.current_tvl / 1000000) }}M
+                {% else %}
+                    ${{ "%.0f"|format(project.current_tvl / 1000) }}K
+                {% endif %}
+            {% else %}—{% endif %}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">30d Growth</div>
+        <div class="stat-value {% if project.tvl_growth_30d_pct and project.tvl_growth_30d_pct > 0 %}green{% elif project.tvl_growth_30d_pct and project.tvl_growth_30d_pct < 0 %}{% else %}blue{% endif %}">
+            {% if project.tvl_growth_30d_pct %}
+                {{ "%.1f"|format(project.tvl_growth_30d_pct) }}%
+            {% else %}—{% endif %}
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">Latest Score</div>
+        <div class="stat-value purple">{{ "%.1f"|format(project.latest_score or 0) }}</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-label">First Seen</div>
+        <div class="stat-value" style="font-size: 1.125rem; color: var(--text-secondary);">
+            {{ project.first_seen.strftime('%Y-%m-%d') if project.first_seen else '—' }}
+        </div>
+    </div>
+</div>
+
+<!-- Score History Chart -->
+<div class="section">
+    <div class="chart-container">
+        <h3>Score History</h3>
+        <canvas id="scoreChart" height="100"></canvas>
+    </div>
+</div>
+
+<!-- Chain TVL Breakdown + Alerts Grid -->
+<div class="grid-2">
+    <!-- Chain TVL -->
+    <div class="section">
+        <h2>Chain TVL Breakdown</h2>
+        {% if chain_tvl %}
+        <div class="chart-container">
+            <canvas id="chainChart" height="200"></canvas>
+        </div>
+        {% else %}
+        <div class="chart-container">
+            <div class="empty-state" style="padding: 1.5rem;">
+                <p>No multi-chain data yet</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Recent Alerts -->
+    <div class="section">
+        <h2>Recent Alerts</h2>
+        {% if alerts %}
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th>Score</th>
+                        <th>Status</th>
+                        <th>Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for a in alerts %}
+                    <tr>
+                        <td>
+                            {% if a.alert_type == "immediate_alert" %}
+                                <span class="badge badge-hot">🚨 Alert</span>
+                            {% else %}
+                                <span class="badge badge-warm">👀 Watch</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ "%.0f"|format(a.score_at_alert) }}</td>
+                        <td>
+                            {% if a.sent %}
+                                <span class="badge badge-healthy">✓ Sent</span>
+                            {% else %}
+                                <span class="badge badge-unhealthy">⏳ Queued</span>
+                            {% endif %}
+                        </td>
+                        <td style="color: var(--text-muted); font-size: 0.75rem;">
+                            {{ a.created_at.strftime('%m/%d %H:%M') if a.created_at else '—' }}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="chart-container">
+            <div class="empty-state" style="padding: 1.5rem;">
+                <p>No alerts for this project</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Outcomes -->
+{% if outcomes %}
+<div class="section">
+    <h2>Recorded Outcomes</h2>
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Score at Outcome</th>
+                    <th>Notes</th>
+                    <th>Date</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for o in outcomes %}
+                <tr>
+                    <td><span class="badge badge-cool">{{ o.outcome_type }}</span></td>
+                    <td>{{ "%.0f"|format(o.score_at_outcome or 0) }}</td>
+                    <td style="color: var(--text-secondary);">{{ o.notes or '—' }}</td>
+                    <td style="color: var(--text-muted); font-size: 0.75rem;">
+                        {{ o.created_at.strftime('%Y-%m-%d') if o.created_at else '—' }}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<div style="margin-top: 2rem;">
+    <a href="/" class="project-link">← Back to Leaderboard</a>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Score History Chart
+fetch('/api/scores/{{ project.slug }}')
+    .then(r => r.json())
+    .then(data => {
+        if (data.error || !data.labels.length) return;
+        new Chart(document.getElementById('scoreChart'), {
+            type: 'line',
+            data: {
+                labels: data.labels,
+                datasets: [
+                    { label: 'Total', data: data.total, borderColor: '#8b5cf6', backgroundColor: 'rgba(139,92,246,0.1)', fill: true, tension: 0.3, borderWidth: 2 },
+                    { label: 'TVL', data: data.tvl, borderColor: '#3b82f6', borderWidth: 1.5, tension: 0.3, hidden: true },
+                    { label: 'Growth', data: data.growth, borderColor: '#10b981', borderWidth: 1.5, tension: 0.3, hidden: true },
+                    { label: 'Funding', data: data.funding, borderColor: '#f59e0b', borderWidth: 1.5, tension: 0.3, hidden: true },
+                    { label: 'GitHub', data: data.github, borderColor: '#ef4444', borderWidth: 1.5, tension: 0.3, hidden: true },
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { labels: { color: '#9ca3af', font: { family: 'Inter' } } }
+                },
+                scales: {
+                    x: { grid: { color: 'rgba(42,49,68,0.5)' }, ticks: { color: '#6b7280', font: { family: 'Inter' } } },
+                    y: { grid: { color: 'rgba(42,49,68,0.5)' }, ticks: { color: '#6b7280', font: { family: 'Inter' } }, min: 0, max: 90 }
+                }
+            }
+        });
+    });
+
+{% if chain_tvl %}
+// Chain TVL Doughnut
+const chainData = {{ chain_tvl | tojson }};
+const chains = Object.keys(chainData).sort((a, b) => chainData[b] - chainData[a]).slice(0, 10);
+const colors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#6366f1'];
+
+new Chart(document.getElementById('chainChart'), {
+    type: 'doughnut',
+    data: {
+        labels: chains,
+        datasets: [{
+            data: chains.map(c => chainData[c]),
+            backgroundColor: colors.slice(0, chains.length),
+            borderWidth: 0,
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'right',
+                labels: { color: '#9ca3af', font: { family: 'Inter', size: 11 }, padding: 12 }
+            },
+            tooltip: {
+                callbacks: {
+                    label: (ctx) => {
+                        const v = ctx.parsed;
+                        if (v >= 1e9) return `$${(v/1e9).toFixed(1)}B`;
+                        if (v >= 1e6) return `$${(v/1e6).toFixed(1)}M`;
+                        return `$${(v/1e3).toFixed(0)}K`;
+                    }
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

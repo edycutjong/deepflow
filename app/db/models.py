@@ -36,8 +36,10 @@ class Project(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     category: Mapped[str | None] = mapped_column(String(100))
     chain: Mapped[str | None] = mapped_column(String(100))
+    chains: Mapped[str | None] = mapped_column(Text)  # JSON array of chain names
     has_token: Mapped[bool] = mapped_column(Boolean, default=False)
     current_tvl: Mapped[float | None] = mapped_column(Float)
+    chain_tvl: Mapped[str | None] = mapped_column(Text)  # JSON: {"ethereum": 50000000, ...}
     tvl_growth_30d_pct: Mapped[float | None] = mapped_column(Float)
     latest_score: Mapped[float | None] = mapped_column(Float)
     first_seen: Mapped[datetime] = mapped_column(

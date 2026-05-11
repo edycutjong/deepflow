@@ -15,6 +15,9 @@ class Settings(BaseSettings):
 
     GITHUB_TOKEN: str = ""  # Optional: raises rate limit from 60→5000/hr
 
+    DISCORD_WEBHOOK_URL: str = ""  # Optional: Discord webhook for alerts
+    SLACK_WEBHOOK_URL: str = ""  # Optional: Slack incoming webhook for alerts
+
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url_async(self) -> str:
